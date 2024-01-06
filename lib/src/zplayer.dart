@@ -235,12 +235,15 @@ class _ZPlayerState extends State<ZPlayer> {
           children: [
             for (double speed in [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3 ,5])
               ListTile(
-                enabled: speed != currentRate,
+                // enabled: speed != currentRate,
                 leading: speed == currentRate ? const Icon(Icons.check) : const SizedBox(),
                 selected: speed == currentRate,
                 title: Text("x$speed"),
                 onTap: () {
                   videoController.player.setRate(speed);
+                  setState(() {
+                    currentRate = speed;
+                  });
                   Navigator.pop(context);
                 },
               ),
@@ -341,6 +344,14 @@ class _ZPlayerState extends State<ZPlayer> {
       aspectRatio: _selectedVideoSize?.aspectRatio ?? 16 / 9,
       child: Directionality(
         textDirection: TextDirection.ltr,
+        child: Theme(
+          data: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: color ?? Colors.white,
+              brightness: Brightness.dark,
+            ),
+            platform: TargetPlatform.windows,
+          ),
         child: MaterialDesktopVideoControlsTheme(
           normal: MaterialDesktopVideoControlsThemeData(
             seekBarPositionColor: color ?? Colors.white,
@@ -355,7 +366,23 @@ class _ZPlayerState extends State<ZPlayer> {
               const MaterialDesktopPlayOrPauseButton(),
               const MaterialDesktopSkipNextButton(),
               const MaterialDesktopVolumeButton(),
-              const MaterialDesktopPositionIndicator(),
+              // const _MaterialDesktopPositionIndicator(),
+              // videoController.player.stream.position
+              StreamBuilder(
+                stream: videoController.player.stream.position,
+                builder: (context, snapshot) {
+                  return Text(
+                    "${snapshot.data?.inMinutes ?? 0}:${(snapshot.data?.inSeconds ?? 0) % 60}"
+                    " / "
+                    "${videoController.player.state.duration.inMinutes}:${videoController.player.state.duration.inSeconds % 60}"
+                    ,
+                    style: const TextStyle(
+                      color: Colors.white,
+                    ),
+                  );
+                },
+              ),
+
               const Spacer(),
               _buildQualityButton(),
               _buildSpeedButton(),
@@ -378,7 +405,7 @@ class _ZPlayerState extends State<ZPlayer> {
               const MaterialDesktopPositionIndicator(),
               const Spacer(),
               _buildQualityButton(),
-                _buildSpeedButton(),
+              _buildSpeedButton(),
               const MaterialDesktopFullscreenButton(),
             ],
           ),
@@ -412,10 +439,12 @@ class _ZPlayerState extends State<ZPlayer> {
               ],
             ),
             child: Video(
+              filterQuality: FilterQuality.low,
               controller: videoController,
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -461,7 +490,7 @@ class _ZPlayerState extends State<ZPlayer> {
     return MaterialDesktopCustomButton(
       onPressed: openSelectSpeed,
       icon: StreamBuilder(
-        stream: videoController.player.stream.playing,
+        stream: videoController.player.stream.rate,
         builder: (context, snapshot) {
           return Badge(
             backgroundColor: color,
@@ -531,3 +560,8 @@ class _LiveIndicatorState extends State<_LiveIndicator> with SingleTickerProvide
     );
   }
 }
+
+
+
+
+
