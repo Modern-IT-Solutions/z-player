@@ -23,7 +23,10 @@ class ZPlayer extends StatefulWidget {
   State<ZPlayer> createState() => _ZPlayerState();
 }
 
-class _ZPlayerState extends State<ZPlayer> {
+class _ZPlayerState extends State<ZPlayer> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+  
   late final videoPlayer = Player(
     configuration: const PlayerConfiguration(bufferSize: 7 * 1024 * 1024, title: 'ZPlayer'),
   );
