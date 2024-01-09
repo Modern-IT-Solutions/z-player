@@ -1,7 +1,9 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -16,8 +18,15 @@ class ZPlayer extends StatefulWidget {
 
   final Widget? title;
   final Set<ZStream> streams;
+  final Future<void> Function()? onEnterFullScreen;
+  final Future<void> Function()? onExitFullScreen;
 
-  const ZPlayer({super.key, required this.streams, this.title});
+  const ZPlayer({super.key,
+  required this.streams,
+  this.title,
+  this.onEnterFullScreen,
+  this.onExitFullScreen,
+  });
 
   @override
   State<ZPlayer> createState() => _ZPlayerState();
@@ -343,112 +352,111 @@ class _ZPlayerState extends State<ZPlayer> with AutomaticKeepAliveClientMixin {
   @override
   Widget build(BuildContext context) {
     color = Theme.of(context).primaryColor;
-    return AspectRatio(
-      aspectRatio: _selectedVideoSize?.aspectRatio ?? 16 / 9,
-      child: Directionality(
-        textDirection: TextDirection.ltr,
-        child: Theme(
-          data: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: color ?? Colors.white,
-              brightness: Brightness.dark,
-            ),
-            platform: TargetPlatform.windows,
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Theme(
+        data: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: color ?? Colors.white,
+            brightness: Brightness.dark,
           ),
-        child: MaterialDesktopVideoControlsTheme(
-          normal: MaterialDesktopVideoControlsThemeData(
+          platform: !kIsWeb && !Platform.isIOS ? TargetPlatform.windows : TargetPlatform.iOS,
+        ),
+      child: MaterialDesktopVideoControlsTheme(
+        normal: MaterialDesktopVideoControlsThemeData(
+          seekBarPositionColor: color ?? Colors.white,
+          seekBarThumbColor: color ?? Colors.white,
+          topButtonBar: [
+            _buildTitle(),
+            const Spacer(),
+            _buildLiveIndicator(),
+          ],
+          bottomButtonBar: [
+            const MaterialDesktopSkipPreviousButton(),
+            const MaterialDesktopPlayOrPauseButton(),
+            const MaterialDesktopSkipNextButton(),
+            const MaterialDesktopVolumeButton(),
+            // const _MaterialDesktopPositionIndicator(),
+            // videoController.player.stream.position
+            StreamBuilder(
+              stream: videoController.player.stream.position,
+              builder: (context, snapshot) {
+                return Text(
+                  "${snapshot.data?.inMinutes ?? 0}:${(snapshot.data?.inSeconds ?? 0) % 60}"
+                  " / "
+                  "${videoController.player.state.duration.inMinutes}:${videoController.player.state.duration.inSeconds % 60}"
+                  ,
+                  style: const TextStyle(
+                    color: Colors.white,
+                  ),
+                );
+              },
+            ),
+    
+            const Spacer(),
+            _buildQualityButton(),
+            _buildSpeedButton(),
+            const MaterialDesktopFullscreenButton(),
+          ],
+        ),
+        fullscreen: MaterialDesktopVideoControlsThemeData(
+          seekBarPositionColor: color ?? Colors.white,
+          seekBarThumbColor: color ?? Colors.white,
+          topButtonBar: [
+            _buildTitle(),
+            const Spacer(),
+            _buildLiveIndicator(),
+          ],
+          bottomButtonBar: [
+            const MaterialDesktopSkipPreviousButton(),
+            const MaterialDesktopPlayOrPauseButton(),
+            const MaterialDesktopSkipNextButton(),
+            const MaterialDesktopVolumeButton(),
+            const MaterialDesktopPositionIndicator(),
+            const Spacer(),
+            _buildQualityButton(),
+            _buildSpeedButton(),
+            const MaterialDesktopFullscreenButton(),
+          ],
+        ),
+        child: MaterialVideoControlsTheme(
+          normal: MaterialVideoControlsThemeData(
             seekBarPositionColor: color ?? Colors.white,
             seekBarThumbColor: color ?? Colors.white,
             topButtonBar: [
+              _buildQualityButton(),
+              _buildSpeedButton(),
               _buildTitle(),
+              const Spacer(),
+              const Spacer(),
               const Spacer(),
               _buildLiveIndicator(),
             ],
-            bottomButtonBar: [
-              const MaterialDesktopSkipPreviousButton(),
-              const MaterialDesktopPlayOrPauseButton(),
-              const MaterialDesktopSkipNextButton(),
-              const MaterialDesktopVolumeButton(),
-              // const _MaterialDesktopPositionIndicator(),
-              // videoController.player.stream.position
-              StreamBuilder(
-                stream: videoController.player.stream.position,
-                builder: (context, snapshot) {
-                  return Text(
-                    "${snapshot.data?.inMinutes ?? 0}:${(snapshot.data?.inSeconds ?? 0) % 60}"
-                    " / "
-                    "${videoController.player.state.duration.inMinutes}:${videoController.player.state.duration.inSeconds % 60}"
-                    ,
-                    style: const TextStyle(
-                      color: Colors.white,
-                    ),
-                  );
-                },
-              ),
-
-              const Spacer(),
-              _buildQualityButton(),
-              _buildSpeedButton(),
-              const MaterialDesktopFullscreenButton(),
-            ],
           ),
-          fullscreen: MaterialDesktopVideoControlsThemeData(
+          fullscreen: MaterialVideoControlsThemeData(
             seekBarPositionColor: color ?? Colors.white,
             seekBarThumbColor: color ?? Colors.white,
+            brightnessGesture: true,
+            volumeGesture: true,
             topButtonBar: [
+              _buildQualityButton(),
+              _buildSpeedButton(),
               _buildTitle(),
+              const Spacer(),
+              const Spacer(),
               const Spacer(),
               _buildLiveIndicator(),
             ],
-            bottomButtonBar: [
-              const MaterialDesktopSkipPreviousButton(),
-              const MaterialDesktopPlayOrPauseButton(),
-              const MaterialDesktopSkipNextButton(),
-              const MaterialDesktopVolumeButton(),
-              const MaterialDesktopPositionIndicator(),
-              const Spacer(),
-              _buildQualityButton(),
-              _buildSpeedButton(),
-              const MaterialDesktopFullscreenButton(),
-            ],
           ),
-          child: MaterialVideoControlsTheme(
-            normal: MaterialVideoControlsThemeData(
-              seekBarPositionColor: color ?? Colors.white,
-              seekBarThumbColor: color ?? Colors.white,
-              topButtonBar: [
-                _buildQualityButton(),
-                _buildSpeedButton(),
-                _buildTitle(),
-                const Spacer(),
-                const Spacer(),
-                const Spacer(),
-                _buildLiveIndicator(),
-              ],
-            ),
-            fullscreen: MaterialVideoControlsThemeData(
-              seekBarPositionColor: color ?? Colors.white,
-              seekBarThumbColor: color ?? Colors.white,
-              brightnessGesture: true,
-              volumeGesture: true,
-              topButtonBar: [
-                _buildQualityButton(),
-                _buildSpeedButton(),
-                _buildTitle(),
-                const Spacer(),
-                const Spacer(),
-                const Spacer(),
-                _buildLiveIndicator(),
-              ],
-            ),
             child: Video(
-              filterQuality: FilterQuality.low,
+              fill: color ?? Colors.black,
               controller: videoController,
+              onEnterFullscreen: widget.onEnterFullScreen ?? () async {},
+              onExitFullscreen: widget.onExitFullScreen ?? () async {},
             ),
-          ),
         ),
       ),
-      ),
+    ),
     );
   }
 
